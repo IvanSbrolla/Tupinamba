@@ -96,5 +96,5 @@ module.exports = app => {
             .catch(err => res.status(500).end({ "data": {}, "err": err }))
     }
 
-    return { save, getUser }
+    return { save, getUser, remove }
 }

@@ -3,9 +3,8 @@ module.exports = app => {
     app.route('/user')
         .post(app.api.user.save)
         .put(app.api.user.save)
-
-    app.route('/getUser')
         .get(app.api.user.getUser)
+        .delete(app.api.user.remove)
 
     app.route('/categories')
         .post(app.api.categories.save)
