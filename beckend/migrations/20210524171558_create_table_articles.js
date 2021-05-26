@@ -1,10 +1,10 @@
 
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('articles', table => {
     table.increments('id').primary()
     table.string('name').notNull()
     table.string('description', 1000).notNull()
-    table.string('imageUrl',1000)
+    table.string('imageUrl', 1000)
     table.binary('content').notNull()
     table.integer('userId').unsigned().notNull()
     table.foreign('userId').references('id').inTable('users')
@@ -13,6 +13,6 @@ exports.up = function(knex) {
   })
 };
 
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTable('articles')
 };

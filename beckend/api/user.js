@@ -1,5 +1,5 @@
 module.exports = app => {
-    const { isNumeric, isString, notIsEmptyOrNull, notExist, confirmPassword, isEmail, isStrongPassword, } = app.api.validations
+    const { isNumeric, isString, notIsEmptyOrNull, notExist, confirmPassword, isEmail, isStrongPassword } = app.api.validations
     const { encryptPassword } = app.api.crypt
 
     const save = (req, res) => {
@@ -79,6 +79,21 @@ module.exports = app => {
                 .then(users => res.status(200).json({ "data": { users }, "err": false }))
                 .catch(err => res.status(500).end({ "data": {}, "err": err }))
         }
+    }
+
+    const remove = (req, res) => {
+        try {
+            notIsEmptyOrNull(req.query.id, "O campo ID nao pode ser do tipo null nem vazio")
+            isNumeric(req.query.id, 'O campo ID deve ser um numero')
+        } catch (err) {
+            return res.status(400).end({ "data": {}, "err": err })
+        }
+        app.db('users')
+            .where({ id: req.query.id })
+            .del()
+            .then(user => notIsEmptyOrNull(user, 'Não foi possivel remover usuario'))
+            .then(res.status(204).end())
+            .catch(err => res.status(500).end({ "data": {}, "err": err }))
     }
 
     return { save, getUser }
