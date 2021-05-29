@@ -2,7 +2,7 @@ module.exports = app => {
     const { isNumeric, isString, notIsEmptyOrNull, notExist, confirmPassword, isEmail, isStrongPassword } = app.api.validations
     const { encryptPassword } = app.api.crypt
 
-    const save = (req, res) => {
+    const save = async (req, res) => {
         const user = { ...req.body }
         try {
             notIsEmptyOrNull(user.name, 'Campo NAME é obrigatorio!')
@@ -15,14 +15,14 @@ module.exports = app => {
             isString(user.cargo, 'O campo CARGO deve ser uma string')
             confirmPassword(user, 'As senhas não são iguais')
             isStrongPassword(user.password, 'A senha deve conter 1 letra maiuscula, 1 minuscula, 1 simbolo, 1 numero e no minimo 8 caracteres')
-            if (!user.id) {
-                app.db('users')
-                    .select('email')
+            if (!req.query.id) {
+                const verifyIfHaveEmail = await app.db('users')
+                    .select('id')
                     .where({ email: user.email })
                     .first()
-                    .then(user => notExist(user, 'Email ja cadastrado'))
                     .catch(err => res.status(400).end({ "data": {}, "err": err }))
 
+                notExist(verifyIfHaveEmail, 'Email ja registrado')
             }
         }
         catch (err) {
@@ -34,18 +34,17 @@ module.exports = app => {
 
         if (req.query.id) {
             app.db('users')
-                .update(user)
                 .where({ id: req.query.id })
-                .then(x => res.status(200).json({ "data": { user }, "err": false }))
+                .update(user)
+                .then(res.status(200).json({ "data": { user }, "err": false }))
                 .catch(err => res.status(500).end({ "data": {}, "err": err }))
         }
         else {
             app.db('users')
                 .insert(user)
-                .then(x => res.status(200).json({ "data": { user }, "err": false }))
+                .then(res.status(200).json({ "data": { user }, "err": false }))
                 .catch(err => res.status(500).end({ "data": {}, "err": err }))
         }
-
     }
 
     const getUser = (req, res) => {
@@ -98,3 +97,4 @@ module.exports = app => {
 
     return { save, getUser, remove }
 }
+
