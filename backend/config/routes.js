@@ -1,13 +1,14 @@
 module.exports = app => {
 
-    app.post('/signup',app.api.user.save)
-    app.post('/sigin',app.api.auth.sigin)
-    app.post('/validateToken',app.api.auth.validateToken)
+    
 
+
+    app.get('/getUsers',app.api.user.getUsers)
+    app.get('/getUserByEmail',app.api.user.getByEmail)
+    app.get('/getUserById',app.api.user.getById)
     app.route('/users')
         .post(app.api.user.save)
         .put(app.api.user.save)
-        .get(app.api.user.getUser)
         .delete(app.api.user.remove)
 
     app.route('/categories')

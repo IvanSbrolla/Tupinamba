@@ -16,13 +16,12 @@ module.exports = app => {
             confirmPassword(user, 'As senhas não são iguais')
             isStrongPassword(user.password, 'A senha deve conter 1 letra maiuscula, 1 minuscula, 1 simbolo, 1 numero e no minimo 8 caracteres')
             if (!req.query.id) {
-                const verifyIfHaveEmail = await app.db('users')
-                    .select('id')
-                    .where({ email: user.email })
-                    .first()
-                    .catch(err => res.status(400).end({ "data": {}, "err": err }))
-
+                const verifyIfHaveEmail = await getUserWithWhereEqual(res,'email',user.email)
                 notExist(verifyIfHaveEmail, 'Email ja registrado')
+            }
+            else {
+                const verifyIfHaveIdResgistered = await getUserWithWhereEqual(res, 'id', req.query.id)
+                notIsEmptyOrNull(verifyIfHaveIdResgistered, `Usuario com o ID : ${req.query.id}, não encontrado!`)
             }
         }
         catch (err) {
@@ -33,50 +32,51 @@ module.exports = app => {
         delete user.confirmPassword
 
         if (req.query.id) {
-            app.db('users')
-                .where({ id: req.query.id })
-                .update(user)
-                .then(res.status(200).json({ "data": { user }, "err": false }))
-                .catch(err => res.status(500).end({ "data": {}, "err": err }))
+            const reqUser = updateUser(user, 'id', req.query.id)
+            console.log(reqUser)
+            res.status(200).send()
         }
         else {
             app.db('users')
                 .insert(user)
-                .then(res.status(200).json({ "data": { user }, "err": false }))
+                .then(res.status(200).send())
                 .catch(err => res.status(500).end({ "data": {}, "err": err }))
         }
     }
 
-    const getUser = (req, res) => {
-        if (req.query.email) {
-            try {
-                isEmail(req.query.email, "Email inválido")
-            } catch (err) {
-                res.status(400).json({ "data": {}, "err": err })
-            }
-            app.db('users')
-                .select('id', 'name', 'email', 'cargo', 'admin')
-                .where({ email: req.query.email })
-                .then(users => res.status(200).json({ "data": { users }, "err": false }))
-                .catch(err => res.status(500).end({ "data": {}, "err": err }))
+    const getByEmail = async (req, res) => {
+        let user = null
+        try {
+            notIsEmptyOrNull(req.query.email, 'Insira o EMAIL para buscar pelo usuario')
+            isEmail(req.query.email, "Email inválido")
+            user = await getUserWithWhereEqual(res, 'email', req.query.email)
+            notIsEmptyOrNull(user, 'Usuario não encontrado')
+            res.status(200).json({ "data": { user }, "err": false })
+        } catch (err) {
+            res.status(400).json({ "data": {}, "err": err })
         }
-        else if (req.query.id) {
-            try {
-                isNumeric(req.query.id, "O campo ID deve ser um numero")
-            } catch (err) {
-                res.status(400).json({ "data": {}, "err": err })
-            }
-            app.db('users')
-                .select('id', 'name', 'email', 'cargo', 'admin')
-                .where({ id: req.query.id })
-                .then(users => res.status(200).json({ "data": { users }, "err": false }))
-                .catch(err => res.status(500).end({ "data": {}, "err": err }))
+    }
+    const getById = async (req, res) => {
+        let user = null
+        try {
+            notIsEmptyOrNull(req.query.id, 'Insira o ID para buscar pelo usuario')
+            isNumeric(req.query.id, "O campo ID deve ser um numero")
+            user = await getUserWithWhereEqual(res, 'id', req.query.id)
+            console.log(user)
+            notIsEmptyOrNull(user, 'Usuario não encontrado')
+            res.status(200).json({ "data": { user }, "err": false })
+        } catch (err) {
+            res.status(400).json({ "data": {}, "err": err })
         }
-        else {
-            app.db('users')
-                .select('id', 'name', 'email', 'cargo', 'admin')
-                .then(users => res.status(200).json({ "data": { users }, "err": false }))
-                .catch(err => res.status(500).end({ "data": {}, "err": err }))
+    }
+    const getUsers = async (req, res) => {
+        let user = null
+        try {
+            user = await getAllUsers(res, false)
+            notIsEmptyOrNull(user[0], 'Nao foi possivel carregar a lista de usuarios')
+            res.status(200).json({ "data": { user }, "err": false })
+        } catch (err) {
+            res.status(400).json({ "data": {}, "err": err })
         }
     }
 
@@ -87,14 +87,35 @@ module.exports = app => {
         } catch (err) {
             return res.status(400).end({ "data": {}, "err": err })
         }
+        removeUser(res, { id: req.query.id })
+    }
+
+    function updateUser(user, whereKey, whereVal) {
+        return app.db('users')
+            .where(whereKey, whereVal)
+            .update(user)
+            .catch(err => res.status(500).end({ "data": {}, "err": err }))
+    }
+    function getUserWithWhereEqual(res, whereKey, whereVal) {
+        return app.db('users')
+            .select('id', 'name', 'email', 'cargo', 'admin')
+            .where(whereKey, whereVal)
+            .first()
+            .catch(err => res.status(500).end({ "data": {}, "err": err }))
+    }
+    function getAllUsers(res) {
+        return app.db('users')
+            .select('id', 'name', 'email', 'cargo', 'admin')
+            .catch(err => res.status(500).end({ "data": {}, "err": err }))
+    }
+    function removeUser(res, objWhere) {
         app.db('users')
-            .where({ id: req.query.id })
+            .where(objWhere)
             .del()
             .then(user => notIsEmptyOrNull(user, 'Não foi possivel remover usuario'))
             .then(res.status(204).end())
             .catch(err => res.status(500).end({ "data": {}, "err": err }))
     }
-
-    return { save, getUser, remove }
+    return { save, getByEmail, getById, getUsers, remove }
 }
 
