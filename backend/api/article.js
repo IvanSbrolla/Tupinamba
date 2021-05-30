@@ -1,5 +1,5 @@
 module.exports = app => {
-    const save = (req, res) => {
+    const save = async (req, res) => {
         const article = { ...req.body }
         const { isNumeric, isString, notIsEmptyOrNull, notExist } = app.api.validations
         try {
@@ -16,17 +16,17 @@ module.exports = app => {
             isNumeric(article.categoryId, 'O campo CATEGORYID deve ser um numero')
 
             if (!req.query.id) {
-                app.db('articles')
+                const verifyIfHaveDescription = await app.db('articles')
                     .select('description')
                     .where({ description: article.description })
-                    .then(objArticle => notExist(objArticle, 'Ja esxiste um artigo com essa descrição'))
                     .catch(err => res.status(400).end({ "data": {}, "err": err }))
+                    notExist(verifyIfHaveDescription, 'Ja esxiste um artigo com essa descrição')
 
-                app.db('articles')
+                const verifyIfHaveContent = await app.db('articles')
                     .select('content')
                     .where({ content: article.content })
-                    .then(objArticle => notExist(objArticle, 'Ja esxiste um artigo com esse conteudo'))
                     .catch(err => res.status(400).end({ "data": {}, "err": err }))
+                    notExist(verifyIfHaveContent, 'Ja esxiste um artigo com esse conteudo')
             }
 
         } catch (err) {
@@ -37,13 +37,13 @@ module.exports = app => {
             app.db('articles')
                 .update(article)
                 .where({ id: article.id })
-                .then(objArticle => res.status(200).json({ "data": { article }, 'err': false }))
+                .then(objArticle => res.status(200).send())
                 .catch(err => res.status(500).end({ "data": {}, "err": err }))
         }
         else {
             app.db('articles')
                 .insert(article)
-                .then(objArticle => res.status(200).json({ "data": { article }, 'err': false }))
+                .then(objArticle => res.status(200).send())
                 .catch(err => res.status(500).end({ "data": {}, "err": err }))
         }
 
@@ -67,7 +67,7 @@ module.exports = app => {
     const getPaged = async (req, res) => {
         const page = req.query.page || 1
         const limit = 10
-        const count = await app.db('articles').count('id')
+        const count = await app.db('articles').count('id').first()
 
         app.db('articles')
             .select('id', 'name', 'description')
@@ -86,7 +86,10 @@ module.exports = app => {
             .select()
             .where({ id: req.query.id })
             .first()
-            .then(article => res.status(200).json({ "data": { article }, "err": false }))
+            .then(article => {
+                article.content = article.content.toString()
+                return res.status(200).json({ "data": { article }, "err": false })
+            })
             .catch(err => res.status(500).end({ "data": {}, "err": err }))
     }
     return { save, remove, getById, getPaged }
