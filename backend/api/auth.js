@@ -14,7 +14,7 @@ module.exports = app => {
             .where({ email: infosUser.email })
             .first()
             .catch(err => res.status(500).end({ "data": {}, "err": err }))
-
+    
         if (!user) res.status(400).send(`Email não cadastrado!`)
 
         const isMatch = bcrypt.compareSync(infosUser.password, user.password)
