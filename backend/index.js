@@ -7,6 +7,7 @@ const port = 3001
 app.db = db
 
 consign()
+    .include('./config/passport.js')
     .then('./config/middleware.js')
     .then('./api/validations.js')
     .then('./api')
